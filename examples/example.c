@@ -27,16 +27,72 @@ main(int argc, char *argv[])
     Uint32 pixel;
     int ret, paused, quit;
     Uint32 t0, t1, delay, delta;
+  FILE *file;
+  long file_size;
+  char *buffer;
 
     if (argc != 2) {
         fprintf(stderr, "usage:\n  %s gif-file\n", argv[0]);
         return 1;
     }
-    gif = gd_open_gif(argv[1]);
+
+
+  // Open the file
+  file = fopen(argv[1], "rb");
+  if (!file) {
+    perror("Failed to open file");
+    return 1;
+  }
+
+  // Get file size
+  fseek(file, 0, SEEK_END);
+  file_size = ftell(file);
+  fseek(file, 0, SEEK_SET);
+
+  // Allocate memory for the file contents
+  buffer = (char *)malloc(file_size);
+  if (!buffer) {
+    fprintf(stderr, "Failed to allocate memory\n");
+    fclose(file);
+    return 1;
+  }
+
+  // Read file into memory
+  if (fread(buffer, 1, file_size, file) != file_size) {
+    fprintf(stderr, "Failed to read the entire file\n");
+    free(buffer);
+    fclose(file);
+    return 1;
+  }
+
+  fclose(file);
+
+  fprintf(stderr, "File size: %ld\n", file_size);
+  gif = gd_open_gif_memory(buffer, file_size);
     if (!gif) {
         fprintf(stderr, "Could not open %s\n", argv[1]);
         return 1;
     }
+
+
+  gd_rewind(gif);
+  int frameCount = 0;
+  while (1) {
+    fprintf(stderr, "Loading frame %d\n", frameCount);
+    int f = gd_get_frame(gif);
+    if (f < 0) {
+        fprintf(stderr, "Unable to get frame: %d\n", frameCount);
+        return 1;
+    } else if (f == 0) {
+      fprintf(stderr, "End of file reached: %d\n", frameCount);
+      break;
+    }
+    frameCount++;
+  }
+  gd_rewind(gif);
+
+
+
     frame = malloc(gif->width * gif->height * 3);
     if (!frame) {
         fprintf(stderr, "Could not allocate frame\n");
