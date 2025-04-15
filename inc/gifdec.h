@@ -17,7 +17,8 @@
 #endif
 
 #ifndef GD_LOG_ERROR
-#define GD_LOG_ERROR(f, ...) fprintf(stderr, f "\n", ##__VA_ARGS__)
+#include <esp_log.h>
+#define GD_LOG_ERROR(f, ...) ESP_LOGE("[gifdec] ", f "\n", ##__VA_ARGS__)
 #endif
 
 #ifdef __cplusplus
